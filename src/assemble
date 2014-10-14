@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+require "#{File.dirname(__FILE__)}/assembler"
+
+if ARGV.length < 1
+  puts "filename is not given."
+  exit
+end
+
+as = Assembler.new
+puts as.assemble(ARGV[0]) 
