@@ -1,5 +1,5 @@
 spec "instruction type" do
-  
+
   type "Rtype" do
     operand_type Reg, Reg, Reg
     bit_length 5, 5, 5

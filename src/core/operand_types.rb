@@ -2,7 +2,7 @@ module OperandType
   attr_accessor :bit_len, :name
 
   def bit_exp(num)
-    [*1..32].inject("") {|accu, i| accu += num[32 - i].to_s}
+    [*1..$arch[:data_size]].inject("") {|accu, i| accu += num[$arch[:data_size] - i].to_s}
   end
   
 end
@@ -15,6 +15,9 @@ class Reg
   end
 
   def encode(env)
+    if @num >= 1 << @bit_len || @num < 0
+      raise StandardError.new("The number of register:'#{@num}' is in the invalid range")
+    end
     bit_exp(@num)
   end
 
@@ -32,8 +35,14 @@ class LabelRelative
   end
 
   def encode(env)
-    raise StandardError.new("Label '#{@sym.to_s}' in not found.") if env[:labels][@sym].nil? or env[:labels][@sym][:location].nil?
-    bit_exp(env[:labels][@sym][:location] - (env[:location] + 1))
+    if env[:labels][@sym].nil? or env[:labels][@sym][:location].nil?
+      raise StandardError.new("Label '#{@sym.to_s}' in not found.")
+    end
+    value = env[:labels][@sym][:location] - (env[:location] + 1)
+    if value >= 1 << @bit_len || value < -(1 << @bit_len)
+      raise StandardError.new("Label '#{@sym.to_s}' is too far for relative expression")
+    end
+    bit_exp(value)
   end
 
   def self.type_accept?(type)
@@ -51,12 +60,16 @@ class LabelAbsolute
 
   def encode(env)
     if env[:labels][@sym]
-      bit_exp(env[:labels][@sym][:location] + env[:base_addr])
+      value = env[:labels][@sym][:location] + env[:base_addr]
     elsif env[:exported_labels][@sym]
-      bit_exp(env[:exported_labels][@sym][:location])
+      value = env[:exported_labels][@sym][:location]
     else
       raise StandardError.new("Label '#{@sym.to_s}' is not found.")
     end
+    if value >= 1 << @bit_len || value < -(1 << @bit_len)
+      raise StandardError.new("The address of Label '#{@sym.to_s}' is too large for the width of absolute labels")
+    end
+    bit_exp(value)
   end
 
   def self.type_accept?(type)
@@ -80,9 +93,14 @@ class Immediate
 
   def encode(env)
     unless @int.nil?
+      if @int >= 1 << @bit_len || @int < -(1 << @bit_len)
+        raise StandardError.new("Immediate '#{@int}' is too large for the bit width: #{@bit_len}")
+      end
       bit_exp(@int)
     else
-      LabelAbsolute.new(@label).encode(env)
+      label = LabelAbsolute.new(@label)
+      label.bit_len = @bit_len
+      label.encode(env)
     end
   end
 
@@ -92,6 +110,23 @@ class Immediate
 
   def ftoi(f)
     [f].pack("f").unpack("l")[0]
+  end
+
+end
+
+class UnsignedImmediate < Immediate
+
+  def encode(env)
+    unless @int.nil?
+      if @int >= 1 << (@bit_len + 1) || @int < 0
+        raise StandardError.new("UnsignedImmediate '#{@int}' is too large for the bit width: #{@bit_len}")
+      end
+      bit_exp(@int)
+    else
+      label = LabelAbsolute.new(@label)
+      label.bit_len = @bit_len
+      label.encode(env)
+    end
   end
 
 end
