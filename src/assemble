@@ -2,7 +2,6 @@
 
 require 'getoptlong'
 require "#{File.dirname(__FILE__)}/assembler"
-require "#{File.dirname(__FILE__)}/convert_assenbli"
 
 if ARGV.length < 1
   puts <<-EOF
@@ -36,7 +35,5 @@ end
 ARGV.unshift start_point
 ARGV.push tail_padding
 
-conv = Converter.new
-temps = ARGV.map{|filename|conv.convert(filename)}
 as = Assembler.new
-print as.assemble(temps)[output_format]
+print as.assemble(ARGV)[output_format]
