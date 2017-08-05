@@ -26,8 +26,9 @@ class Assembler
   end
 
   def assemble(filenames)
-    jails, state = load_assembly_in_jail(filenames)
-    format encode_to_hash(jails, state)
+    jails = prepare_assembler_jail(filenames)
+    global_labels = jails.inject({}) {|acc, jail| acc.merge! jail.global_labels}
+    format encode(jails, global_labels)
   end
 
   def format(encoded)
@@ -39,30 +40,27 @@ class Assembler
     res
   end
 
-  def load_assembly_in_jail(filenames)
-    env = {instruction: nil, labels: nil, base_addr: 0, base_addrs: [0], exported_labels: {}}
-    jails = filenames.map do |filename|
-        @jail_class.new.eval File.open(filename)
+  def prepare_assembler_jail(filenames)
+    base_addr = 0
+    jails = []
+    filenames.each do |filename|
+      jail = @jail_class.new(base_addr)
+      jail.eval File.open(filename)
+      base_addr = jail.end_addr
+      jails.push jail
     end
-    jails.each.with_index do |jail, i|
-      env[:base_addrs][i + 1] = env[:base_addrs][i] + (jail.instructions.length * $arch[:instruction_length] / $arch[:addressing_size]) 
-      jail.global_labels.each do |k, v|
-        v[:location] += env[:base_addrs][i]
-      end
-      env[:exported_labels].merge! jail.global_labels
-    end
-    [jails, env]
+    jails
   end
 
-  def encode_to_hash(jails, env)
+  def encode(jails, global_labels)
+    state = {location: 0, labels: nil, base_addr: 0}
     res = []
     jails.each.with_index do |jail, i|
-      env[:instruction] = jail.instructions
-      env[:labels] = jail.labels
-      env[:base_addr] = env[:base_addrs][i]
+      state[:labels] = jail.labels.merge global_labels
+      state[:base_addr] = jail.base_addr
       res.push jail.instructions.map.with_index {|inst, j|
-        env[:location] = j
-        inst.encode(env)
+        state[:location] = j * $arch[:instruction_length]
+        inst.encode(state)
       }
     end
     res.flatten!
@@ -86,12 +84,13 @@ class Assembler
 end
 
 class AssemblyEvalJail
-  attr_accessor :instructions, :labels
+  attr_accessor :instructions, :labels, :base_addr
 
-  def initialize
+  def initialize(base_addr)
     @instructions = []
     @labels = {}
     @export_label_syms = []
+    @base_addr = base_addr
   end
 
   def eval(src_or_file)
@@ -104,15 +103,22 @@ class AssemblyEvalJail
     self
   end
 
+  def end_addr
+    @instructions.length * $arch[:instruction_length] / $arch[:addressing_size] + @base_addr
+  end
+
   def label(sym)
-    @labels[sym] = {location: @instructions.length}
+    @labels[sym] = {location: @instructions.length * $arch[:instruction_length] / $arch[:addressing_size] + @base_addr}
   end
 
   def global_labels
-    @export_labels ||= Hash[*@export_label_syms.map {|sym|
+    @global_labels if @global_labels
+    @global_labels = {}
+    @export_label_syms.each do |sym|
       raise StandardError.new("The '#{sym}' label is declared as global, but there is no such label.") if @labels[sym].nil?
-      [sym, @labels[sym].dup]
-    }.flatten(1)]
+      @global_labels[sym] = @labels[sym]
+    end
+    @global_labels
   end
 
   # directives

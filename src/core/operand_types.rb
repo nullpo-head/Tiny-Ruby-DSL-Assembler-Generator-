@@ -38,7 +38,7 @@ class LabelRelative
     if env[:labels][@sym].nil? or env[:labels][@sym][:location].nil?
       raise StandardError.new("Label '#{@sym.to_s}' in not found.")
     end
-    value = env[:labels][@sym][:location] - (env[:location] + 1)
+    value = env[:labels][@sym][:location] - (env[:location] + $arch[:instruction_length] / $arch[:addressing_size])
     if value >= 1 << @bit_len || value < -(1 << @bit_len)
       raise StandardError.new("Label '#{@sym.to_s}' is too far for relative expression")
     end
@@ -59,13 +59,10 @@ class LabelAbsolute
   end
 
   def encode(env)
-    if env[:labels][@sym]
-      value = env[:labels][@sym][:location] + env[:base_addr]
-    elsif env[:exported_labels][@sym]
-      value = env[:exported_labels][@sym][:location]
-    else
+    if env[:labels][@sym].nil? or env[:labels][@sym][:location].nil?
       raise StandardError.new("Label '#{@sym.to_s}' is not found.")
     end
+    value = env[:labels][@sym][:location]
     if value >= 1 << @bit_len || value < -(1 << @bit_len)
       raise StandardError.new("The address of Label '#{@sym.to_s}' is too large for the width of absolute labels")
     end
