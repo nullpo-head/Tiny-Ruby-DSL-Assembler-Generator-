@@ -3,10 +3,17 @@
 require 'getoptlong'
 require_relative "core/assembler"
 
-if ARGV.length < 1
+def help
   puts <<-EOF
-    Usage: ./assemble filenames... [--binary, -b] [--no-metada, -n] [--start-point, -s filename] [--tail-padding, -t tail filename] 
+Usage: ./assemble filenames...
+  --binary -b               Output the raw binary assembled data 
+  --ascii-with-metadata -m  (default) Output the assembled data in ASCII string with metadata
+  --ascii -a                Output the assembled data in ASCII string
   EOF
+end
+
+if ARGV.length < 1
+  help
   exit
 end
 
@@ -15,19 +22,20 @@ tail_padding = nil
 output_format = :ascii_with_metadata
 
 GetoptLong.new(
-  ['--start-point', '-s', GetoptLong::REQUIRED_ARGUMENT],
-  ['--tail-padding', '-t', GetoptLong::REQUIRED_ARGUMENT],
   ['--binary', '-b', GetoptLong::NO_ARGUMENT],
-  ['--no-metadata', '-n', GetoptLong::NO_ARGUMENT]
+  ['--ascii-with-metadata', '-m', GetoptLong::NO_ARGUMENT],
+  ['--ascii', '-a', GetoptLong::NO_ARGUMENT],
+  ['--help', '-h', GetoptLong::NO_ARGUMENT]
 ).each do |opt, arg|
   case opt
-  when '--start-point'
-    start_point = arg
-  when '--tail-padding'
-    tail_padding = arg
+  when '--help'
+    help
+    exit
   when '--binary'
     output_format = :binary
-  when '--no-metadata'
+  when '--ascii-with-metadata'
+    output_format = :ascii_with_metadata
+  when '--ascii'
     output_format = :ascii
   end
 end
