@@ -1,13 +1,14 @@
 DIR = File.dirname(__FILE__)
+SPEC_DIR = DIR + "/../spec_dsl/"
 
-require "#{DIR}/eval_inst_type_dsl"
-require "#{DIR}/eval_registers_dsl"
-require "#{DIR}/eval_operations_dsl"
-require "#{DIR}/operand_types"
+require_relative "../core/eval_inst_type_dsl"
+require_relative "../core/eval_registers_dsl"
+require_relative "../core/eval_operations_dsl"
+require_relative "../core/operand_types"
 
 INSTRUCTION_BIT_LENGTH = 32
 
-class Assembler                              #
+class Assembler
 
   def initialize
     @jail_class = Class.new AssemblyEvalJail
@@ -17,9 +18,9 @@ class Assembler                              #
         specify.call(target, specification)
       end
     }
-    load "#{DIR}/register_dsl.rb"
-    load "#{DIR}/inst_type_dsl.rb"
-    load "#{DIR}/operations_dsl.rb"
+    load "#{SPEC_DIR}/register_dsl.rb"
+    load "#{SPEC_DIR}/inst_type_dsl.rb"
+    load "#{SPEC_DIR}/operations_dsl.rb"
   end
 
   def assemble(filenames)

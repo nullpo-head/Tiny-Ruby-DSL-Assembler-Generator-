@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'getoptlong'
-require "#{File.dirname(__FILE__)}/assembler"
+require_relative "core/assembler"
 
 if ARGV.length < 1
   puts <<-EOF
@@ -10,8 +10,8 @@ if ARGV.length < 1
   exit
 end
 
-start_point = "#{DIR}/start_point_dsl.S"
-tail_padding = "#{DIR}/tail_padding.S"
+start_point = nil
+tail_padding = nil
 output_format = :ascii_with_metadata
 
 GetoptLong.new(
@@ -32,8 +32,8 @@ GetoptLong.new(
   end
 end
 
-ARGV.unshift start_point
-ARGV.push tail_padding
+ARGV.unshift start_point if start_point
+ARGV.push tail_padding if tail_padding
 
 as = Assembler.new
 print as.assemble(ARGV)[output_format]
