@@ -54,7 +54,8 @@ module InstructionType
     operand_bits = @operands.map {|op|
       op.encode(env)[(-op.bit_len)..-1]
     }
-    {bits: encode_f.call(*([mnemonic] + operand_bits)), metadata: @metadata}
+    args = (function ? [mnemonic, function] : [mnemonic]) + operand_bits
+    {bits: encode_f.call(*args), metadata: @metadata}
   end
 
   def type_strict(args, types)
@@ -115,4 +116,9 @@ class RawDataInstruction
   def mnemonic
     ""
   end
+
+  def function
+    nil
+  end
+
 end

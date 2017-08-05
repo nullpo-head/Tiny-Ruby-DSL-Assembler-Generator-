@@ -38,7 +38,14 @@ class OperationsSpecifier
       op_class = Class.new
       op_class.method(:include).call(inst_type_module)
       op_class.instance_eval do
-        define_method(:mnemonic) {args[1]}
+        define_method(:mnemonic) do
+          args[1]
+        end
+      end
+      op_class.instance_eval do
+        define_method(:function) do 
+          args[2] ? args[2] : nil
+        end
       end
       Object.const_set(capitalize_first.call(args[0].to_s) + "Instruction", op_class)
       {name: args[0].to_s, class_object: op_class}
