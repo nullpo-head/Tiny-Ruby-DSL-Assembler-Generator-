@@ -14,7 +14,7 @@ spec "registers" do
     register "s#{i}", i + 16
   }
   2.times {|i|
-    register "t#{i}", i + 24
+    register "t#{i+8}", i + 24
   }
   2.times {|i|
     register "k#{i}", i + 26
@@ -27,5 +27,7 @@ spec "registers" do
   32.times {|i|
     register "r#{i}", i
   }
-
+  32.times {|i|
+    register "f#{i}", i
+  }
 end

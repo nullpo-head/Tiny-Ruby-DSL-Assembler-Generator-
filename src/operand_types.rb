@@ -1,8 +1,8 @@
 module OperandType
-  attr_accessor :bit_len
+  attr_accessor :bit_len, :name
 
   def bit_exp(num)
-    [*1..bit_len].inject("") {|accu, i| accu += num[bit_len - i].to_s}
+    [*1..32].inject("") {|accu, i| accu += num[32 - i].to_s}
   end
   
 end
@@ -22,20 +22,17 @@ class Reg
     type == Reg
   end
 
-
 end
 
 class LabelRelative
   include OperandType
-
-  attr_accessor :bit_len
 
   def initialize(sym)
     @sym = sym
   end
 
   def encode(env)
-    raise StandardError.new("Label '#{@sym.to_s}' in not found.") if env[:labels][@sym][:location].nil?
+    raise StandardError.new("Label '#{@sym.to_s}' in not found.") if env[:labels][@sym].nil? or env[:labels][@sym][:location].nil?
     bit_exp(env[:labels][@sym][:location] - (env[:location] + 1))
   end
 
@@ -48,15 +45,18 @@ end
 class LabelAbsolute
   include OperandType
 
-  attr_accessor :bit_len
-
   def initialize(sym)
     @sym = sym
   end
 
   def encode(env)
-    raise StandardError.new("Label '#{@sym.to_s}' in not found.") if env[:labels][@sym][:location].nil?
-    bit_exp(env[:labels][@sym][:location])
+    if env[:labels][@sym]
+      bit_exp(env[:labels][@sym][:location] + env[:base_addr])
+    elsif env[:exported_labels][@sym]
+      bit_exp(env[:exported_labels][@sym][:location])
+    else
+      raise StandardError.new("Label '#{@sym.to_s}' is not found.")
+    end
   end
 
   def self.type_accept?(type)
@@ -68,18 +68,30 @@ end
 class Immediate
   include OperandType
 
-  attr_accessor :bit_len
-
-  def initialize(int)
-    @int = int
+  def initialize(isf)
+    if isf.class == Fixnum
+      @int = isf
+    elsif isf.class == Float
+      @int = ftoi(isf)
+    else
+      @label = isf
+    end
   end
 
   def encode(env)
-    bit_exp(@int)
+    unless @int.nil?
+      bit_exp(@int)
+    else
+      LabelAbsolute.new(@label).encode(env)
+    end
   end
 
   def self.type_accept?(type)
-    type == Fixnum
+    type == Fixnum || type == Symbol || type == Float
+  end
+
+  def ftoi(f)
+    [f].pack("f").unpack("l")[0]
   end
 
 end

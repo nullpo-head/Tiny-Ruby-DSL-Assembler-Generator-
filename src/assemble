@@ -1,11 +1,42 @@
 #!/usr/bin/env ruby
 
+require 'getoptlong'
 require "#{File.dirname(__FILE__)}/assembler"
+require "#{File.dirname(__FILE__)}/convert_assenbli"
 
 if ARGV.length < 1
-  puts "filename is not given."
+  puts <<-EOF
+    Usage: ./assemble filenames... [--binary, -b] [--no-metada, -n] [--start-point, -s filename] [--tail-padding, -t tail filename] 
+  EOF
   exit
 end
 
+start_point = "#{DIR}/start_point_dsl.S"
+tail_padding = "#{DIR}/tail_padding.S"
+output_format = :ascii_with_metadata
+
+GetoptLong.new(
+  ['--start-point', '-s', GetoptLong::REQUIRED_ARGUMENT],
+  ['--tail-padding', '-t', GetoptLong::REQUIRED_ARGUMENT],
+  ['--binary', '-b', GetoptLong::NO_ARGUMENT],
+  ['--no-metadata', '-n', GetoptLong::NO_ARGUMENT]
+).each do |opt, arg|
+  case opt
+  when '--start-point'
+    start_point = arg
+  when '--tail-padding'
+    tail_padding = arg
+  when '--binary'
+    output_format = :binary
+  when '--no-metadata'
+    output_format = :ascii
+  end
+end
+
+ARGV.unshift start_point
+ARGV.push tail_padding
+
+conv = Converter.new
+temps = ARGV.map{|filename|conv.convert(filename)}
 as = Assembler.new
-puts as.assemble(ARGV[0]) 
+print as.assemble(temps)[output_format]
