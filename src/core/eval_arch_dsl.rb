@@ -3,7 +3,7 @@ class ArchitectureSpecifier
   attr_reader :arch
 
   def initialize()
-    @arch = {address_size: 0, data_size: 0, instruction_length: 0}
+    @arch = {address_size: 0, data_size: 0, instruction_length: 0, endian: :big}
   end
 
   def specify(block)
@@ -20,6 +20,10 @@ class ArchitectureSpecifier
 
   def instruction_length(len)
     @arch[:instruction_length] = len
+  end
+
+  def endian(e)
+    @arch[:endian] = e
   end
 
 end

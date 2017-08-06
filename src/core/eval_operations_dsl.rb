@@ -50,8 +50,8 @@ class OperationsSpecifier
       Object.const_set(capitalize_first.call(args[0].to_s) + "Instruction", op_class)
       {name: args[0].to_s, class_object: op_class}
       
-    rescue NameError
-      puts "error"
+    rescue NameError => e
+      puts "error in method_missing in eval_operations_dsl.rb: #{e}"
       exit
     end
   end

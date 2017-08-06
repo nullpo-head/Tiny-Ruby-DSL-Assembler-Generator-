@@ -7,7 +7,7 @@ require_relative "../core/eval_operations_dsl"
 require_relative "../core/eval_arch_dsl"
 require_relative "../core/operand_types"
 
-$arch = {address_size: 0, data_size: 0, instruction_length: 0}
+$arch = {address_size: 0, data_size: 0, instruction_length: 0, endian: :big}
 
 class Assembler
 
@@ -52,6 +52,12 @@ class Assembler
     jails
   end
 
+  def convert_endian(bits)
+    return bits if $arch[:endian] == :big
+    bits[:bits] = bits[:bits].scan(/.{1,#{$arch[:addressing_size]}}/).reverse.join("")
+    bits
+  end
+
   def encode(jails, global_labels)
     state = {location: 0, labels: nil, base_addr: 0}
     res = []
@@ -60,7 +66,7 @@ class Assembler
       state[:base_addr] = jail.base_addr
       res.push jail.instructions.map.with_index {|inst, j|
         state[:location] = j * $arch[:instruction_length]
-        inst.encode(state)
+        convert_endian(inst.encode(state))
       }
     end
     res.flatten!
